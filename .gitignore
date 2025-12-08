@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+logs/*
+out/*
+out_kernel_gaussian/*
+out_shuffle/*
+out2/*
+
+*.pdf
+*.csv
