@@ -4,6 +4,6 @@
 #SBATCH --time=01:00:00
 #SBATCH -o logs/ind_%A_%a.out
 #SBATCH -e logs/ind_%A_%a.err
-#SBATCH -a 0-4479
+#SBATCH -a 0-2687 # 3455
 
-uv run try_rcca.py $SLURM_ARRAY_TASK_ID
+uv run try_rcca.py $SLURM_ARRAY_TASK_ID 1

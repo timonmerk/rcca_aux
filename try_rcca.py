@@ -1,4 +1,4 @@
-import cca_train
+import utils
 import pandas as pd
 from tqdm import tqdm
 from joblib import Parallel, delayed
@@ -10,18 +10,59 @@ from sklearn.preprocessing import StandardScaler
 import rcca
 from scipy import stats
 import sys
+import os
 
-l_audio_features = ["Loudness_sma3","alphaRatio_sma3","hammarbergIndex_sma3","slope0-500_sma3","slope500-1500_sma3","spectralFlux_sma3","mfcc1_sma3","mfcc2_sma3","mfcc3_sma3","mfcc4_sma3","F0semitoneFrom27.5Hz_sma3nz","jitterLocal_sma3nz","shimmerLocaldB_sma3nz","HNRdBACF_sma3nz","logRelF0-H1-H2_sma3nz","logRelF0-H1-A3_sma3nz","F1frequency_sma3nz","F1bandwidth_sma3nz","F1amplitudeLogRelF0_sma3nz","F2frequency_sma3nz","F2bandwidth_sma3nz","F2amplitudeLogRelF0_sma3nz","F3frequency_sma3nz","F3bandwidth_sma3nz","F3amplitudeLogRelF0_sma3nz","F0semitoneFrom27.5Hz_sma3nz_amean","F0semitoneFrom27.5Hz_sma3nz_stddevNorm","F0semitoneFrom27.5Hz_sma3nz_percentile20.0","F0semitoneFrom27.5Hz_sma3nz_percentile50.0","F0semitoneFrom27.5Hz_sma3nz_percentile80.0","F0semitoneFrom27.5Hz_sma3nz_pctlrange0-2","F0semitoneFrom27.5Hz_sma3nz_meanRisingSlope","F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope","F0semitoneFrom27.5Hz_sma3nz_meanFallingSlope","F0semitoneFrom27.5Hz_sma3nz_stddevFallingSlope","loudness_sma3_amean","loudness_sma3_stddevNorm","loudness_sma3_percentile20.0","loudness_sma3_percentile50.0","loudness_sma3_percentile80.0","loudness_sma3_pctlrange0-2","loudness_sma3_meanRisingSlope","loudness_sma3_stddevRisingSlope","loudness_sma3_meanFallingSlope","loudness_sma3_stddevFallingSlope","spectralFlux_sma3_amean","spectralFlux_sma3_stddevNorm","mfcc1_sma3_amean","mfcc1_sma3_stddevNorm","mfcc2_sma3_amean","mfcc2_sma3_stddevNorm","mfcc3_sma3_amean","mfcc3_sma3_stddevNorm","mfcc4_sma3_amean","mfcc4_sma3_stddevNorm","jitterLocal_sma3nz_amean","jitterLocal_sma3nz_stddevNorm","shimmerLocaldB_sma3nz_amean","shimmerLocaldB_sma3nz_stddevNorm","HNRdBACF_sma3nz_amean","HNRdBACF_sma3nz_stddevNorm","logRelF0-H1-H2_sma3nz_amean","logRelF0-H1-H2_sma3nz_stddevNorm","logRelF0-H1-A3_sma3nz_amean","logRelF0-H1-A3_sma3nz_stddevNorm","F1frequency_sma3nz_amean","F1frequency_sma3nz_stddevNorm","F1bandwidth_sma3nz_amean","F1bandwidth_sma3nz_stddevNorm","F1amplitudeLogRelF0_sma3nz_amean","F1amplitudeLogRelF0_sma3nz_stddevNorm","F2frequency_sma3nz_amean","F2frequency_sma3nz_stddevNorm","F2bandwidth_sma3nz_amean","F2bandwidth_sma3nz_stddevNorm","F2amplitudeLogRelF0_sma3nz_amean","F2amplitudeLogRelF0_sma3nz_stddevNorm","F3frequency_sma3nz_amean","F3frequency_sma3nz_stddevNorm","F3bandwidth_sma3nz_amean","F3bandwidth_sma3nz_stddevNorm","F3amplitudeLogRelF0_sma3nz_amean","F3amplitudeLogRelF0_sma3nz_stddevNorm","alphaRatioV_sma3nz_amean","alphaRatioV_sma3nz_stddevNorm","hammarbergIndexV_sma3nz_amean","hammarbergIndexV_sma3nz_stddevNorm","slopeV0-500_sma3nz_amean","slopeV0-500_sma3nz_stddevNorm","slopeV500-1500_sma3nz_amean","slopeV500-1500_sma3nz_stddevNorm","spectralFluxV_sma3nz_amean","spectralFluxV_sma3nz_stddevNorm","mfcc1V_sma3nz_amean","mfcc1V_sma3nz_stddevNorm","mfcc2V_sma3nz_amean","mfcc2V_sma3nz_stddevNorm","mfcc3V_sma3nz_amean","mfcc3V_sma3nz_stddevNorm","mfcc4V_sma3nz_amean","mfcc4V_sma3nz_stddevNorm","alphaRatioUV_sma3nz_amean","hammarbergIndexUV_sma3nz_amean","slopeUV0-500_sma3nz_amean","slopeUV500-1500_sma3nz_amean","spectralFluxUV_sma3nz_amean","loudnessPeaksPerSec","VoicedSegmentsPerSec","MeanVoicedSegmentLengthSec","StddevVoicedSegmentLengthSec","MeanUnvoicedSegmentLength","StddevUnvoicedSegmentLength","equivalentSoundLevel_dBp","arousal","dominance","valence"] + [f"Dim {i}" for i in range(1024)] + ["duration"]
+l_audio_features = ["Loudness_sma3","alphaRatio_sma3","hammarbergIndex_sma3","slope0-500_sma3","slope500-1500_sma3","spectralFlux_sma3","mfcc1_sma3","mfcc2_sma3","mfcc3_sma3","mfcc4_sma3","F0semitoneFrom27.5Hz_sma3nz","jitterLocal_sma3nz","shimmerLocaldB_sma3nz","HNRdBACF_sma3nz","logRelF0-H1-H2_sma3nz","logRelF0-H1-A3_sma3nz","F1frequency_sma3nz","F1bandwidth_sma3nz","F1amplitudeLogRelF0_sma3nz","F2frequency_sma3nz","F2bandwidth_sma3nz","F2amplitudeLogRelF0_sma3nz","F3frequency_sma3nz","F3bandwidth_sma3nz","F3amplitudeLogRelF0_sma3nz","F0semitoneFrom27.5Hz_sma3nz_amean","F0semitoneFrom27.5Hz_sma3nz_stddevNorm","F0semitoneFrom27.5Hz_sma3nz_percentile20.0","F0semitoneFrom27.5Hz_sma3nz_percentile50.0","F0semitoneFrom27.5Hz_sma3nz_percentile80.0","F0semitoneFrom27.5Hz_sma3nz_pctlrange0-2","F0semitoneFrom27.5Hz_sma3nz_meanRisingSlope","F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope","F0semitoneFrom27.5Hz_sma3nz_meanFallingSlope","F0semitoneFrom27.5Hz_sma3nz_stddevFallingSlope","loudness_sma3_amean","loudness_sma3_stddevNorm","loudness_sma3_percentile20.0","loudness_sma3_percentile50.0","loudness_sma3_percentile80.0","loudness_sma3_pctlrange0-2","loudness_sma3_meanRisingSlope","loudness_sma3_stddevRisingSlope","loudness_sma3_meanFallingSlope","loudness_sma3_stddevFallingSlope","spectralFlux_sma3_amean","spectralFlux_sma3_stddevNorm","mfcc1_sma3_amean","mfcc1_sma3_stddevNorm","mfcc2_sma3_amean","mfcc2_sma3_stddevNorm","mfcc3_sma3_amean","mfcc3_sma3_stddevNorm","mfcc4_sma3_amean","mfcc4_sma3_stddevNorm","jitterLocal_sma3nz_amean","jitterLocal_sma3nz_stddevNorm","shimmerLocaldB_sma3nz_amean","shimmerLocaldB_sma3nz_stddevNorm","HNRdBACF_sma3nz_amean","HNRdBACF_sma3nz_stddevNorm","logRelF0-H1-H2_sma3nz_amean","logRelF0-H1-H2_sma3nz_stddevNorm","logRelF0-H1-A3_sma3nz_amean","logRelF0-H1-A3_sma3nz_stddevNorm","F1frequency_sma3nz_amean","F1frequency_sma3nz_stddevNorm","F1bandwidth_sma3nz_amean","F1bandwidth_sma3nz_stddevNorm","F1amplitudeLogRelF0_sma3nz_amean","F1amplitudeLogRelF0_sma3nz_stddevNorm","F2frequency_sma3nz_amean","F2frequency_sma3nz_stddevNorm","F2bandwidth_sma3nz_amean","F2bandwidth_sma3nz_stddevNorm","F2amplitudeLogRelF0_sma3nz_amean","F2amplitudeLogRelF0_sma3nz_stddevNorm","F3frequency_sma3nz_amean","F3frequency_sma3nz_stddevNorm","F3bandwidth_sma3nz_amean","F3bandwidth_sma3nz_stddevNorm","F3amplitudeLogRelF0_sma3nz_amean","F3amplitudeLogRelF0_sma3nz_stddevNorm","alphaRatioV_sma3nz_amean","alphaRatioV_sma3nz_stddevNorm","hammarbergIndexV_sma3nz_amean","hammarbergIndexV_sma3nz_stddevNorm","slopeV0-500_sma3nz_amean","slopeV0-500_sma3nz_stddevNorm","slopeV500-1500_sma3nz_amean","slopeV500-1500_sma3nz_stddevNorm","spectralFluxV_sma3nz_amean","spectralFluxV_sma3nz_stddevNorm","mfcc1V_sma3nz_amean","mfcc1V_sma3nz_stddevNorm","mfcc2V_sma3nz_amean","mfcc2V_sma3nz_stddevNorm","mfcc3V_sma3nz_amean","mfcc3V_sma3nz_stddevNorm","mfcc4V_sma3nz_amean","mfcc4V_sma3nz_stddevNorm","alphaRatioUV_sma3nz_amean","hammarbergIndexUV_sma3nz_amean","slopeUV0-500_sma3nz_amean","slopeUV500-1500_sma3nz_amean","spectralFluxUV_sma3nz_amean","loudnessPeaksPerSec","VoicedSegmentsPerSec","MeanVoicedSegmentLengthSec","StddevVoicedSegmentLengthSec","MeanUnvoicedSegmentLength","StddevUnvoicedSegmentLength","equivalentSoundLevel_dBp","arousal","dominance","valence"] + [f"Dim {i}" for i in range(1024)]# + ["duration"]
 
-df_merged, subs = cca_train.get_df_features("all", "all")
+#out_folder_name = "out2_output_with_fau_au"
+#RUN_SUDS = False
+#RUN_SUDS = True
+
+#idx_run = 0
+idx_run = int(sys.argv[1])
+run_suds = int(sys.argv[2])
+
+if run_suds == 0:
+    RUN_SUDS = False
+    out_folder_name = "out_rs_rcca_output_with_fau_au"
+else:
+    RUN_SUDS = True
+    out_folder_name = "out2_output_with_fau_au"
 
 
-def run_sub(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORMALIZE=True, KERNEL_CCA=False, SHUFFLE=True, ktype="gaussian"):
+
+if not os.path.exists(f"/scratch/tm162/rcca_run/{out_folder_name}"):
+    os.makedirs(f"/scratch/tm162/rcca_run/{out_folder_name}")
+
+num_ccs = [1, 2, 5, 10, 15, 25]
+regs = [0.01, 0.1, 1.0, 10, 100, 1000, 10000, 10000]
+subs = [4, 5, 7, 9, 10, 11, 12]
+INCLUDE_AU_l = [True, False]
+INCLUDE_AUDIO_l = [True, False]
+SUDS = True
+SHUFFLE_l = [True, False]
+KERNEL_CCA_l = [False,]  # False
+NORMALIZE_l = [True,]
+
+
+def run_sub(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORMALIZE=True, KERNEL_CCA=False, SHUFFLE=True, ktype="gaussian", out_folder_name="out2", RUN_SUDS: bool = False):
+    save_name = f"/scratch/tm162/rcca_run/{out_folder_name}/rcca_sub_{sub}_numcc_{num_cc}_reg_{reg}_suds_{SUDS}_au_{INCLUDE_AU}_audio_{INCLUDE_AUDIO}_norm_{NORMALIZE}_kcca_{KERNEL_CCA}_shuffle_{SHUFFLE}.csv"
+    #if os.path.exists(save_name):
+    #    print(f"File {save_name} already exists. Skipping.")
+    #    sys.exit(0)
+
     X_sub = df_merged.query("subject == @sub")
-    X_sub["date"] = X_sub["time"].dt.date
-    X_sub["session_id"] = X_sub["date"].astype("category").cat.codes
-    X_neural = X_sub[[c for c in X_sub.columns if c.startswith("SC_") or c.startswith("C_")]]
-    X_neural["session_id"] = X_sub["session_id"]
+    
+    if RUN_SUDS:
+        X_sub["date"] = X_sub["time"].dt.date
+        X_sub["session_id"] = X_sub["date"].astype("category").cat.codes
+        X_neural = X_sub[[c for c in X_sub.columns if c.startswith("SC_") or c.startswith("C_")]]
+        X_neural["session_id"] = X_sub["session_id"]
+    else:
+        # set the session_id to be unique for each subject-date combination
+        X_sub["session_id"] = (X_sub["subject"].astype(str) + "_" + X_sub["date"].astype(str)).astype("category").cat.codes
+        X_neural = X_sub[[c for c in X_sub.columns if c.startswith("SC_") or c.startswith("C_")]]
+        X_neural["session_id"] = X_sub["session_id"]
 
     cols_include = []
     if INCLUDE_AU:
@@ -29,7 +70,10 @@ def run_sub(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=True, INCLUDE_AUD
     if INCLUDE_AUDIO:
         cols_include += l_audio_features
     if SUDS:
-        cols_include += ["score_feat"]
+        if RUN_SUDS:
+            cols_include += ["score_feat"]
+        else:
+            cols_include += ['YBOCS II Total Score']
 
     Y_fau = X_sub[cols_include]
     Y_fau["session_id"] = X_sub["session_id"]
@@ -51,6 +95,10 @@ def run_sub(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=True, INCLUDE_AUD
         Y_train_cca = Y_fau_train.drop(columns=["session_id"]) # 28 rows 42 cols
         X_test_cca = X_test.drop(columns=["session_id"]) # 10 rows 331 cols
         Y_test_cca = Y_fau_test.drop(columns=["session_id"]) # 10 rows 42 cols
+
+        # get the nan columns in the first row of X_train_cca
+        nan_cols_X = X_train_cca.columns[X_train_cca.iloc[0].isna()]
+        
 
         # drop rows with NaNs
         idx_nan = X_train_cca.isna().any(axis=1) | Y_train_cca.isna().any(axis=1)
@@ -103,8 +151,10 @@ def run_sub(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=True, INCLUDE_AUD
         np.random.shuffle(y_true_sub)
     df_res = []
     for i, col in enumerate(Y_fau_train.columns):
-        if col != "score_feat":
-            continue
+        #if col != "score_feat" and RUN_SUDS:
+        #    continue
+        #if col != 'YBOCS II Total Score' and not RUN_SUDS:
+        #    continue
         if col == "session_id":
             continue
         #r = np.corrcoef(y_true_sub[:, i], y_pred_sub[:, i])[0, 1]
@@ -114,7 +164,6 @@ def run_sub(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=True, INCLUDE_AUD
         df_res.append({"subject": sub, "AU": col, "r": r, "p": p, "num_cc": num_cc, "reg": reg})
 
     df_res = pd.DataFrame(df_res)
-    save_name = f"/scratch/tm162/rcca_run/out_kernel_gaussian/rcca_sub_{sub}_numcc_{num_cc}_reg_{reg}_suds_{SUDS}_au_{INCLUDE_AU}_audio_{INCLUDE_AUDIO}_norm_{NORMALIZE}_kcca_{KERNEL_CCA}_shuffle_{SHUFFLE}.csv"
     df_res["SUDS"] = SUDS
     df_res["INCLUDE_AU"] = INCLUDE_AU
     df_res["INCLUDE_AUDIO"] = INCLUDE_AUDIO
@@ -122,47 +171,40 @@ def run_sub(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=True, INCLUDE_AUD
     df_res["KERNEL_CCA"] = KERNEL_CCA
     df_res["SHUFFLE"] = SHUFFLE
     df_res["ktype"] = ktype
+    df_res["RUN_SUDS"] = RUN_SUDS
     df_res.to_csv(save_name, index=False)
     return df_res
 
-pers_ = []
-SUDS = True
-INCLUDE_AU = True
-INCLUDE_AUDIO = True
+if __name__ == "__main__":
 
-num_ccs = [1, 2, 5, 10, 25]
-regs = [0.01, 0.1, 1, 10, 100, 1000, 10000, 100000]
-subs = [4, 5, 7, 9, 10, 11, 12]
-INCLUDE_AU_l = [True, False]
-INCLUDE_AUDIO_l = [True, False]
-SUDS = True
-SHUFFLE_l = [True, False]
-KERNEL_CCA_l = [True,]  # False
-NORMALIZE_l = [True, False]
+    df_merged, subs = utils.get_df_features("all", "all", READ_RS=not RUN_SUDS)
 
-num_combinations = len(num_ccs) * len(regs) * len(subs) * len(INCLUDE_AU_l) * len(INCLUDE_AUDIO_l) * len(NORMALIZE_l) * len(KERNEL_CCA_l)
-#idx_run = 1
-idx_run = int(sys.argv[1])
+    pers_ = []
+    SUDS = True
 
-if idx_run >= num_combinations:
-    print(f"Index {idx_run} out of range for {num_combinations} combinations")
-    sys.exit(0)
-combination_list = []
+    combination_list = []
 
-for num_cc in num_ccs:
-    for reg in regs:
-        for sub in subs:
-            for INCLUDE_AU in INCLUDE_AU_l:
-                for INCLUDE_AUDIO in INCLUDE_AUDIO_l:
-                    for NORMALIZE in NORMALIZE_l:
-                        for KERNEL_CCA in KERNEL_CCA_l:
-                            for SHUFFLE_ in SHUFFLE_l:
-                                combination_list.append((num_cc, reg, sub, INCLUDE_AU, INCLUDE_AUDIO, NORMALIZE, KERNEL_CCA, SHUFFLE_))
-num_cc, reg, sub, INCLUDE_AU, INCLUDE_AUDIO, NORMALIZE, KERNEL_CCA, SHUFFLE = combination_list[idx_run]
-try:
-    _ = run_sub(df_merged, sub, num_cc, reg, SUDS=SUDS, INCLUDE_AU=INCLUDE_AU, INCLUDE_AUDIO=INCLUDE_AUDIO, NORMALIZE=NORMALIZE, KERNEL_CCA=KERNEL_CCA, SHUFFLE=SHUFFLE)
-except Exception as e:
-    print(f"Error for index {idx_run}, sub {sub}, num_cc {num_cc}, reg {reg}, INCLUDE_AU {INCLUDE_AU}, INCLUDE_AUDIO {INCLUDE_AUDIO}, NORMALIZE {NORMALIZE}, KERNEL_CCA {KERNEL_CCA}: {e}")
+    for num_cc in num_ccs:
+        for reg in regs:
+            for sub in subs:
+                for INCLUDE_AU in INCLUDE_AU_l:
+                    for INCLUDE_AUDIO in INCLUDE_AUDIO_l:
+                        for NORMALIZE in NORMALIZE_l:
+                            for KERNEL_CCA in KERNEL_CCA_l:
+                                for SHUFFLE_ in SHUFFLE_l:
+                                    combination_list.append((num_cc, reg, sub, INCLUDE_AU, INCLUDE_AUDIO, NORMALIZE, KERNEL_CCA, SHUFFLE_))
+    num_cc, reg, sub, INCLUDE_AU, INCLUDE_AUDIO, NORMALIZE, KERNEL_CCA, SHUFFLE = combination_list[idx_run]
+    num_combinations = len(combination_list)
+    if idx_run >= num_combinations:
+        print(f"Index {idx_run} out of range for {num_combinations} combinations")
+        sys.exit(0)
+
+    try:
+        #_ = run_sub(df_merged, sub=10, num_cc=10, reg=10000, SUDS=True, INCLUDE_AU=False, INCLUDE_AUDIO=False, NORMALIZE=True, KERNEL_CCA=False, SHUFFLE=True, out_folder_name=out_folder_name, RUN_SUDS=RUN_SUDS)
+        #_ = run_sub(df_merged, sub=10, num_cc=10, reg=10000, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORMALIZE=True, KERNEL_CCA=False, SHUFFLE=True, out_folder_name=out_folder_name, RUN_SUDS=RUN_SUDS)
+        _ = run_sub(df_merged, sub, num_cc, reg, SUDS=SUDS, INCLUDE_AU=INCLUDE_AU, INCLUDE_AUDIO=INCLUDE_AUDIO, NORMALIZE=NORMALIZE, KERNEL_CCA=KERNEL_CCA, SHUFFLE=SHUFFLE, out_folder_name=out_folder_name, RUN_SUDS=RUN_SUDS)
+    except Exception as e:
+        print(f"Error for index {idx_run}, sub {sub}, num_cc {num_cc}, reg {reg}, INCLUDE_AU {INCLUDE_AU}, INCLUDE_AUDIO {INCLUDE_AUDIO}, NORMALIZE {NORMALIZE}, KERNEL_CCA {KERNEL_CCA}: {e}")
 # Parallel processing using joblib
 # results = Parallel(n_jobs=-1)(
 #     delayed(run_sub)(df_merged, sub, num_cc, reg, SUDS=SUDS, INCLUDE_AU=INCLUDE_AU, INCLUDE_AUDIO=INCLUDE_AUDIO)
