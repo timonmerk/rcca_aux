@@ -24,11 +24,11 @@ regs = df_["reg"].unique()
 # params with out_mlp_aux_2
 #num_cc = 1
 #reg = 100
-GET_BEST = True
+GET_BEST = False
 
 if GET_BEST is False:
-    reg = 0.1
-    num_cc = 10
+    reg = 10000
+    num_cc = 25
     str_save = f"{folder_}_boxplot_comparison_reg_{reg}_cc_{num_cc}.pdf"
 else:
     str_save = f"{folder_}_boxplot_comparison_best.pdf"

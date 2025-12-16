@@ -35,25 +35,28 @@ def get_df_features(region: str, feature: str, READ_RS: bool = False):
 
     if feature == "fft_only":
         if region != "all":
-            df_features = df_features[[c for c in df_features.columns if c.startswith(region) and "fft" in c and "fft_psd" not in c or c == "subject" or c == "score_fau" or c == "score" or c == "score_normed" or c == "time" or c.startswith("AU") or c in l_audio_features]]
+            df_features = df_features[[c for c in df_features.columns if c.startswith(region) and "fft" in c and "fft_psd" not in c or c == "subject" or c == "score_fau" or c == "score" or c == "score_normed" or c == "time" or c == 'YBOCS II Total Score' or c.startswith("AU") or c in l_audio_features]]
         else:
-            df_features = df_features[[c for c in df_features.columns if "fft" in c and "fft_psd" not in c or c == "subject" or c == "score_fau" or c == "score" or c == "score_normed" or c == "time" or c.startswith("AU") or c in l_audio_features]]
+            df_features = df_features[[c for c in df_features.columns if "fft" in c and "fft_psd" not in c or c == "subject" or c == "score_fau" or c == "score" or c == 'YBOCS II Total Score' or c == "score_normed" or c == "time" or c.startswith("AU") or c in l_audio_features]]
 
     elif feature != "all":
         if region != "all":
-            df_features = df_features[[c for c in df_features.columns if (c.startswith(region) and feature in c) or c in ["subject", "score", "score_normed", "time"] or c.startswith("AU") or c in l_audio_features]]
+            df_features = df_features[[c for c in df_features.columns if (c.startswith(region) and feature in c) or c in ["subject", "score", "score_normed", "time", 'YBOCS II Total Score'] or c.startswith("AU") or c in l_audio_features]]
         else:
-            df_features = df_features[[c for c in df_features.columns if feature in c or c == "subject" or c == "score" or c == "score_normed" or c == "time" or c.startswith("AU") or c in l_audio_features]]
+            df_features = df_features[[c for c in df_features.columns if feature in c or c == 'YBOCS II Total Score' or c == "subject" or c == "score" or c == "score_normed" or c == "time" or c.startswith("AU") or c in l_audio_features]]
     elif feature == "all" and region != "all":
-        df_features = df_features[[c for c in df_features.columns if c.startswith(region) or c == "subject" or c == "score" or c == "score_normed" or c == "time" or c.startswith("AU") or c in l_audio_features]]
+        df_features = df_features[[c for c in df_features.columns if c.startswith(region) or c == "subject" or c == 'YBOCS II Total Score' or c == "score" or c == "score_feat" or c == "score_normed" or c == "time" or c == "date" or c.startswith("AU") or c in l_audio_features]]
     #else:
         # select all regions
     #    df_features = df_features[[c for c in df_features.columns if c == "subject" or c == "score" or c == "score_normed" or c == "time" or c.startswith("AU") or c in l_audio_features]]
     # if region starts with C_, remove subjects 4, 5, 7
     subs = df_features["subject"].unique()
-    if region.startswith("C_"):
+    if region.startswith("C"):
         subs = [s for s in subs if s not in [4, 5, 7]]
         df_features = df_features[df_features["subject"].isin(subs)]
+    if region != "all":
+        # remove columns that have coherence or corr in their name
+        df_features = df_features[[c for c in df_features.columns if not "coherence" in c and not "corr" in c]]
     return df_features, subs
 
 
