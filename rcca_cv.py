@@ -12,8 +12,15 @@ from scipy import stats
 import sys
 import os
 import argparse
+from sklearn import metrics
 
-if len(sys.argv) > 2:
+def compute_ccc(x,y):
+    ''' Concordance Correlation Coefficient'''
+    sxy = np.sum((x - x.mean())*(y - y.mean()))/x.shape[0]
+    rhoc = 2*sxy / (np.var(x) + np.var(y) + (x.mean() - y.mean())**2)
+    return rhoc
+
+if len(sys.argv) > 1:
     DEBUG = False
 else:
     DEBUG = True
@@ -22,7 +29,7 @@ l_audio_features = ["Loudness_sma3","alphaRatio_sma3","hammarbergIndex_sma3","sl
 
 if DEBUG is False:
     parser = argparse.ArgumentParser()
-    parser.add_argument("idx_run", type=int, help="Index of the run")
+    parser.add_argument("--idx_run", type=int, help="Index of the run")
     parser.add_argument("--run-suds", action="store_true")
     parser.add_argument("--region", type=str, default="all", choices=["SC", "C", "all"], help="Brain region to use")
     parser.add_argument("--output_folder", type=str, default="out")
@@ -44,6 +51,9 @@ if not os.path.exists(f"/scratch/tm162/rcca_run/{out_folder_name}"):
 
 num_ccs = [1, 2, 5, 10, 15, 25]
 regs = [0.01, 0.1, 1.0, 10, 100, 1000, 10000, 10000]
+
+num_ccs = [1, 2, 5, 7, 10, 12, 15, 17, 20, 25, 30, 40, 50, 70, 80, 90, 100, ]
+regs = [0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 70, 100, 200, 500, 1000, 2000, 5000, 10000]
 subs = [4, 5, 7, 9, 10, 11, 12]
 INCLUDE_AU_l = [True, False]
 INCLUDE_AUDIO_l = [True, False]
@@ -57,8 +67,9 @@ def run_cv(X, Y, num_cc, reg, col_idx_check = None, NORMALIZE=False):
     sess_ids = X["session_id"].unique()
     y_pred = []
     y_true = []
+    dim_correlations = np.empty((sess_ids.shape[0], num_cc), dtype=object)
 
-    for sess_id in sess_ids:
+    for i, sess_id in enumerate(sess_ids):
         X_train = X[X["session_id"] != sess_id].drop(columns=["session_id"])
         Y_train = Y[Y["session_id"] != sess_id].drop(columns=["session_id"])
         X_test = X[X["session_id"] == sess_id].drop(columns=["session_id"])
@@ -86,11 +97,26 @@ def run_cv(X, Y, num_cc, reg, col_idx_check = None, NORMALIZE=False):
         y_pred.append(Y_pred[:, col_idx_check])
         y_true.append(Y_test[:, col_idx_check])
 
+        # correlation of each canonical dimension with the chosen Y column
+        for k in range(num_cc):
+            dim_correlations[i, k] = U[:, k]
+
     y_pred = np.concatenate(y_pred)
     y_true =  np.concatenate(y_true)
     r, p = stats.pearsonr(y_true, y_pred)
 
-    return r, p
+    r_each_cc_dim = []
+    for k in range(num_cc):
+        r_dim, _ = stats.pearsonr(np.concatenate(dim_correlations[:, k]), y_true)
+        r_each_cc_dim.append(r_dim)
+
+    best_idv_cc_dim_corr = np.argmax(r_each_cc_dim)
+    ccc = compute_ccc(y_true, y_pred)
+
+    mae = metrics.mean_absolute_error(y_true, y_pred)
+    mse = metrics.mean_squared_error(y_true, y_pred)
+
+    return r, p, ccc, mae, mse, best_idv_cc_dim_corr, 
 
 def run_sub_get_hyperparams(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORMALIZE=True, out_folder_name="out2", RUN_SUDS: bool = False,
                             sess_test_id=None, ):
@@ -155,7 +181,7 @@ def run_sub_get_hyperparams(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=T
         col_idx_check = Y_train.columns.get_loc('YBOCS II Total Score')
 
     # Run cross-validation to find the best hyperparameters
-    r,p = run_cv(X_train, Y_train, num_cc, reg, col_idx_check, NORMALIZE=NORMALIZE)
+    r,p, ccc, mae, mse, best_idv_cc_dim_corr = run_cv(X_train, Y_train, num_cc, reg, col_idx_check, NORMALIZE=NORMALIZE)
     df_res = pd.DataFrame([{"subject": sub, "r": r, "p": p}])
     df_res["SUDS"] = SUDS
     df_res["INCLUDE_AU"] = INCLUDE_AU
@@ -166,6 +192,10 @@ def run_sub_get_hyperparams(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=T
     df_res["reg"] = reg
     df_res["RUN_SUDS"] = RUN_SUDS
     df_res["region"] = region
+    df_res["ccc"] = ccc
+    df_res["mae"] = mae
+    df_res["mse"] = mse
+    df_res["best_idv_cc_dim_corr"] = best_idv_cc_dim_corr
     df_res.to_csv(save_name, index=False)
 
 if __name__ == "__main__":

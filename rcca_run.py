@@ -15,7 +15,7 @@ import argparse
 
 l_audio_features = ["Loudness_sma3","alphaRatio_sma3","hammarbergIndex_sma3","slope0-500_sma3","slope500-1500_sma3","spectralFlux_sma3","mfcc1_sma3","mfcc2_sma3","mfcc3_sma3","mfcc4_sma3","F0semitoneFrom27.5Hz_sma3nz","jitterLocal_sma3nz","shimmerLocaldB_sma3nz","HNRdBACF_sma3nz","logRelF0-H1-H2_sma3nz","logRelF0-H1-A3_sma3nz","F1frequency_sma3nz","F1bandwidth_sma3nz","F1amplitudeLogRelF0_sma3nz","F2frequency_sma3nz","F2bandwidth_sma3nz","F2amplitudeLogRelF0_sma3nz","F3frequency_sma3nz","F3bandwidth_sma3nz","F3amplitudeLogRelF0_sma3nz","F0semitoneFrom27.5Hz_sma3nz_amean","F0semitoneFrom27.5Hz_sma3nz_stddevNorm","F0semitoneFrom27.5Hz_sma3nz_percentile20.0","F0semitoneFrom27.5Hz_sma3nz_percentile50.0","F0semitoneFrom27.5Hz_sma3nz_percentile80.0","F0semitoneFrom27.5Hz_sma3nz_pctlrange0-2","F0semitoneFrom27.5Hz_sma3nz_meanRisingSlope","F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope","F0semitoneFrom27.5Hz_sma3nz_meanFallingSlope","F0semitoneFrom27.5Hz_sma3nz_stddevFallingSlope","loudness_sma3_amean","loudness_sma3_stddevNorm","loudness_sma3_percentile20.0","loudness_sma3_percentile50.0","loudness_sma3_percentile80.0","loudness_sma3_pctlrange0-2","loudness_sma3_meanRisingSlope","loudness_sma3_stddevRisingSlope","loudness_sma3_meanFallingSlope","loudness_sma3_stddevFallingSlope","spectralFlux_sma3_amean","spectralFlux_sma3_stddevNorm","mfcc1_sma3_amean","mfcc1_sma3_stddevNorm","mfcc2_sma3_amean","mfcc2_sma3_stddevNorm","mfcc3_sma3_amean","mfcc3_sma3_stddevNorm","mfcc4_sma3_amean","mfcc4_sma3_stddevNorm","jitterLocal_sma3nz_amean","jitterLocal_sma3nz_stddevNorm","shimmerLocaldB_sma3nz_amean","shimmerLocaldB_sma3nz_stddevNorm","HNRdBACF_sma3nz_amean","HNRdBACF_sma3nz_stddevNorm","logRelF0-H1-H2_sma3nz_amean","logRelF0-H1-H2_sma3nz_stddevNorm","logRelF0-H1-A3_sma3nz_amean","logRelF0-H1-A3_sma3nz_stddevNorm","F1frequency_sma3nz_amean","F1frequency_sma3nz_stddevNorm","F1bandwidth_sma3nz_amean","F1bandwidth_sma3nz_stddevNorm","F1amplitudeLogRelF0_sma3nz_amean","F1amplitudeLogRelF0_sma3nz_stddevNorm","F2frequency_sma3nz_amean","F2frequency_sma3nz_stddevNorm","F2bandwidth_sma3nz_amean","F2bandwidth_sma3nz_stddevNorm","F2amplitudeLogRelF0_sma3nz_amean","F2amplitudeLogRelF0_sma3nz_stddevNorm","F3frequency_sma3nz_amean","F3frequency_sma3nz_stddevNorm","F3bandwidth_sma3nz_amean","F3bandwidth_sma3nz_stddevNorm","F3amplitudeLogRelF0_sma3nz_amean","F3amplitudeLogRelF0_sma3nz_stddevNorm","alphaRatioV_sma3nz_amean","alphaRatioV_sma3nz_stddevNorm","hammarbergIndexV_sma3nz_amean","hammarbergIndexV_sma3nz_stddevNorm","slopeV0-500_sma3nz_amean","slopeV0-500_sma3nz_stddevNorm","slopeV500-1500_sma3nz_amean","slopeV500-1500_sma3nz_stddevNorm","spectralFluxV_sma3nz_amean","spectralFluxV_sma3nz_stddevNorm","mfcc1V_sma3nz_amean","mfcc1V_sma3nz_stddevNorm","mfcc2V_sma3nz_amean","mfcc2V_sma3nz_stddevNorm","mfcc3V_sma3nz_amean","mfcc3V_sma3nz_stddevNorm","mfcc4V_sma3nz_amean","mfcc4V_sma3nz_stddevNorm","alphaRatioUV_sma3nz_amean","hammarbergIndexUV_sma3nz_amean","slopeUV0-500_sma3nz_amean","slopeUV500-1500_sma3nz_amean","spectralFluxUV_sma3nz_amean","loudnessPeaksPerSec","VoicedSegmentsPerSec","MeanVoicedSegmentLengthSec","StddevVoicedSegmentLengthSec","MeanUnvoicedSegmentLength","StddevUnvoicedSegmentLength","equivalentSoundLevel_dBp","arousal","dominance","valence"] + [f"Dim {i}" for i in range(1024)]# + ["duration"]
 
-if len(sys.argv) > 0:
+if len(sys.argv) == 1:  # only file
     DEBUG = True
 else:
     DEBUG = False
@@ -25,21 +25,20 @@ if DEBUG is False:
     parser.add_argument('--idx_run', type=int, required=True, help='Index of the run')
     parser.add_argument('--run_suds', action='store_true', help='Whether to run SUDS or RS')
     parser.add_argument('--region', type=str, default='all', help='Region to use: SC, C, or all')
-    parser.add_argument('output_folder', type=str, help='Output folder name', default="outercv")
+    parser.add_argument('--output_folder', type=str, help='Output folder name', default="outercv")
 
     args = parser.parse_args()
     idx_run = args.idx_run
     RUN_SUDS = args.run_suds
     region = args.region
     out_folder_name = args.output_folder + ("_suds" if RUN_SUDS else "_rs") + f"_{region}"
-    out_folder_name += f"_{region}"
 else:
     idx_run = 0
-    region = "C"
-    RUN_SUDS = True
+    region = "all"
+    RUN_SUDS = False
     out_folder_name = "debug_outercv"
 
-gs_name = "out_" + ("suds" if RUN_SUDS else "rs") + f"_{region}.csv"
+gs_name = "outl_" + ("suds" if RUN_SUDS else "rs") + f"_{region}.csv"
 df_gs_res = pd.read_csv("/scratch/tm162/rcca_run/" + gs_name)
 
 if not os.path.exists(f"/scratch/tm162/rcca_run/{out_folder_name}"):
@@ -47,6 +46,9 @@ if not os.path.exists(f"/scratch/tm162/rcca_run/{out_folder_name}"):
 
 num_ccs = [1, 2, 5, 10, 15, 25]
 regs = [0.01, 0.1, 1.0, 10, 100, 1000, 10000, 10000]
+num_ccs = [1, 2, 5, 7, 10, 12, 15, 17, 20, 25, 30, 40, 50, 70, 80, 90, 100, ]
+regs = [0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 70, 100, 200, 500, 1000, 2000, 5000, 10000]
+
 subs = [4, 5, 7, 9, 10, 11, 12]
 INCLUDE_AU_l = [True, False]
 INCLUDE_AUDIO_l = [True, False]
@@ -129,12 +131,13 @@ def run_sub(df_merged, sub, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORM
             Y_train = pd.DataFrame(scaler_Y.fit_transform(Y_train), columns=Y_train.columns, index=Y_train.index)
             Y_test = pd.DataFrame(scaler_Y.transform(Y_test), columns=Y_test.columns, index=Y_test.index)
 
-
-
         df_q = df_gs_res.query("subject == @sub and sess_test_id == @test_sess_id and INCLUDE_AU == @INCLUDE_AU and INCLUDE_AUDIO == @INCLUDE_AUDIO and SUDS == @SUDS")
         try:
             idx_best = df_q["r"].idxmax()
-            idx_best = df_q["p"].idxmin()
+            # get the index with highest r but num_cc != 25 and reg != 10000
+            if df_q.loc[idx_best, "reg"] == 0.01:
+                df_q_temp = df_q[(df_q["reg"] != 0.01)]
+                idx_best = df_q_temp["r"].idxmax()
         except:
             continue
         num_cc_best = df_q.loc[idx_best, "num_cc"]
@@ -180,6 +183,7 @@ def run_sub(df_merged, sub, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORM
     df_res["INCLUDE_AU"] = INCLUDE_AU
     df_res["INCLUDE_AUDIO"] = INCLUDE_AUDIO
     df_res["RUN_SUDS"] = RUN_SUDS
+    df_res["region"] = region
     df_res.to_csv(save_name, index=False)
     return df_res
 

@@ -6,21 +6,21 @@
 #SBATCH -e logs/ind_%A_%a.err
 #SBATCH -a 0-35 # 19007
 
+OUTDIR="outercvl"
+
 uv run rcca_run.py \
-    $SLURM_ARRAY_TASK_ID \
-    --run_suds \
+    --idx_run $SLURM_ARRAY_TASK_ID \
     --region all \
-    --output_folder outercv
+    --output_folder $OUTDIR
 
 uv run rcca_run.py \
-    $SLURM_ARRAY_TASK_ID \
-    --run_suds \
+    --idx_run $SLURM_ARRAY_TASK_ID \
     --region SC \
-    --output_folder outercv
+    --output_folder $OUTDIR
 
 uv run rcca_run.py \
-    $SLURM_ARRAY_TASK_ID \
-    --run_suds \
+    --idx_run $SLURM_ARRAY_TASK_ID \
     --region C \
-    --output_folder outercv
+    --output_folder $OUTDIR
+
 

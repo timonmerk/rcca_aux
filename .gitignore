@@ -17,3 +17,6 @@ out2/*
 
 *.pdf
 *.csv
+
+pre/logs/*
+*.png
