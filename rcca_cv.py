@@ -42,28 +42,28 @@ if DEBUG is False:
     out_folder_name += f"_{region}"
 else:
     idx_run = 0
-    region = "C"
+    region = "SC"
     RUN_SUDS = True
-    out_folder_name = "debug_out_suds_rcca"
+    out_folder_name = "debug_out_rs_rcca"
 
 if not os.path.exists(f"/scratch/tm162/rcca_run/{out_folder_name}"):
     os.makedirs(f"/scratch/tm162/rcca_run/{out_folder_name}")
 
-num_ccs = [1, 2, 5, 10, 15, 25]
-regs = [0.01, 0.1, 1.0, 10, 100, 1000, 10000, 10000]
+# num_ccs = [1, 2, 5, 10, 15, 25]
+# regs = [0.01, 0.1, 1.0, 10, 100, 1000, 10000, 10000]
+# num_ccs = [1, 2, 5, 7, 10, 12, 15, 17, 20, 25, 30, 40, 50, 70, 80, 90, 100, ]
+# regs = [0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 70, 100, 200, 500, 1000, 2000, 5000, 10000]
 
-num_ccs = [1, 2, 5, 7, 10, 12, 15, 17, 20, 25, 30, 40, 50, 70, 80, 90, 100, ]
-regs = [0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 70, 100, 200, 500, 1000, 2000, 5000, 10000]
+num_ccs = [1, 2, 3, 4, 5, 10, 20]
+regs = [0.1, 0.5, 1, 5, 10, 20, 100, 500, 1000, 10000]
+
 subs = [4, 5, 7, 9, 10, 11, 12]
 INCLUDE_AU_l = [True, False]
 INCLUDE_AUDIO_l = [True, False]
 SUDS = True
-SHUFFLE_l = [True, False]
-KERNEL_CCA_l = [False,]  # False
 NORMALIZE_l = [True,]
 
 def run_cv(X, Y, num_cc, reg, col_idx_check = None, NORMALIZE=False):
-
     sess_ids = X["session_id"].unique()
     y_pred = []
     y_true = []
@@ -105,18 +105,37 @@ def run_cv(X, Y, num_cc, reg, col_idx_check = None, NORMALIZE=False):
     y_true =  np.concatenate(y_true)
     r, p = stats.pearsonr(y_true, y_pred)
 
-    r_each_cc_dim = []
-    for k in range(num_cc):
-        r_dim, _ = stats.pearsonr(np.concatenate(dim_correlations[:, k]), y_true)
-        r_each_cc_dim.append(r_dim)
-
-    best_idv_cc_dim_corr = np.argmax(r_each_cc_dim)
     ccc = compute_ccc(y_true, y_pred)
 
     mae = metrics.mean_absolute_error(y_true, y_pred)
     mse = metrics.mean_squared_error(y_true, y_pred)
 
-    return r, p, ccc, mae, mse, best_idv_cc_dim_corr, 
+    df_res = pd.DataFrame([{
+        "r": r,
+        "p": p,
+        "ccc": ccc,
+        "mae": mae,
+        "mse": mse,
+        "cc_dim" : "all"
+    }])
+
+    for k in range(num_cc):
+        r, p = stats.pearsonr(np.concatenate(dim_correlations[:, k]), y_true)
+        ccc = compute_ccc(np.concatenate(dim_correlations[:, k]), y_true)
+        mae = metrics.mean_absolute_error(y_true, np.concatenate(dim_correlations[:, k]))
+        mse = metrics.mean_squared_error(y_true, np.concatenate(dim_correlations[:, k]))
+        #r_each_cc_dim.append(r_dim)
+        df_res = pd.concat([df_res, pd.DataFrame([{
+            "r": r,
+            "p": p,
+            "ccc": ccc,
+            "mae": mae,
+            "mse": mse,
+            "cc_dim" : k+1
+        }])], ignore_index=True)
+
+
+    return df_res
 
 def run_sub_get_hyperparams(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORMALIZE=True, out_folder_name="out2", RUN_SUDS: bool = False,
                             sess_test_id=None, ):
@@ -181,8 +200,7 @@ def run_sub_get_hyperparams(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=T
         col_idx_check = Y_train.columns.get_loc('YBOCS II Total Score')
 
     # Run cross-validation to find the best hyperparameters
-    r,p, ccc, mae, mse, best_idv_cc_dim_corr = run_cv(X_train, Y_train, num_cc, reg, col_idx_check, NORMALIZE=NORMALIZE)
-    df_res = pd.DataFrame([{"subject": sub, "r": r, "p": p}])
+    df_res = run_cv(X_train, Y_train, num_cc, reg, col_idx_check, NORMALIZE=NORMALIZE)
     df_res["SUDS"] = SUDS
     df_res["INCLUDE_AU"] = INCLUDE_AU
     df_res["INCLUDE_AUDIO"] = INCLUDE_AUDIO
@@ -192,10 +210,7 @@ def run_sub_get_hyperparams(df_merged, sub, num_cc, reg, SUDS=True, INCLUDE_AU=T
     df_res["reg"] = reg
     df_res["RUN_SUDS"] = RUN_SUDS
     df_res["region"] = region
-    df_res["ccc"] = ccc
-    df_res["mae"] = mae
-    df_res["mse"] = mse
-    df_res["best_idv_cc_dim_corr"] = best_idv_cc_dim_corr
+    df_res["subject"] = sub
     df_res.to_csv(save_name, index=False)
 
 if __name__ == "__main__":

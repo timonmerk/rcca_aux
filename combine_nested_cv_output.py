@@ -16,8 +16,8 @@ def load_and_combine(folder_name, rs, region):
     df.to_csv(f"/scratch/tm162/rcca_run/{folder_}.csv", index=False)
 
 combinations = []
-folder_name = "outl"
-for rs in ["rs", "suds"]:
+folder_name = "outccn"
+for rs in ["suds", "rs"]: # 
     for region in ["SC", "C", "all"]:
         #load_and_combine(folder_name, rs, region)
         combinations.append((folder_name, rs, region))

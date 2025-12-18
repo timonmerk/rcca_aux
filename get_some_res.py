@@ -8,11 +8,16 @@ import seaborn as sns
 folder_read = "outercv"
 folder_read = "outercv_lim"
 folder_read = "outercv_limmm"
-folder_read = "outercvl"
+folder_read = "outercvs"
+folder_read = "outerccn"
+folder_read = "outerccn_without_ccdim_decoding"
+#folder_read = "outerccn_without_ccdim_decoding_mse"
+folder_read = "outerccn_only_ccdim"
+folder_read = "outerccn_wo_reg01"
 
 for DECODE_SUDS in [True, False]:
     df_comb = []
-    for loc in ["SC", "C", "all"]:
+    for loc in ["all", "SC", "C"]:
         if DECODE_SUDS:
             folder_read_ = folder_read + "_suds"
             label_ = "score_feat"
@@ -34,16 +39,20 @@ for DECODE_SUDS in [True, False]:
         df_comb.append(df_plt)
 
     df_plt = pd.concat(df_comb, ignore_index=True)
-    region = "SC"
+    region = "all"
     r_ = df_plt.query("cond == 'SUDS' and region == @region").sort_values("subject")["r"].values
     r_au_audio = df_plt.query("cond == 'SUDS + AU + Audio' and region == @region").sort_values("subject")["r"].values
 
-    #r_test = r_au_audio - r_
+    #r_test = (r_au_audio) - (r_)
     #r_zero = np.zeros_like(r_test)
-    #stats.permutation_test((r_au_audio, r_), statistic=lambda x, y: np.mean(x) - np.mean(y), vectorized=False, n_resamples=10000, alternative='greater')
+    
+    #stats.permutation_test((r_au_audio, r_), statistic=lambda x, y: np.mean(x) - np.mean(y), vectorized=False, n_resamples=5000, alternative="greater")
 
     plt.figure(figsize=(8,6))
-    sns.boxplot(data=df_plt, x="region", y="r", hue="cond", dodge=True, showmeans=True)
-    sns.swarmplot(data=df_plt, x="region", y="r", hue="cond", dodge=True, color=".25")
+    sns.boxplot(data=df_plt, x="region", y="r", hue="cond",
+                dodge=True, showmeans=True, hue_order=["SUDS", "SUDS + Audio", "SUDS + AU", "SUDS + AU + Audio"],)
+    sns.swarmplot(data=df_plt, x="region", y="r", hue="cond",
+                  dodge=True, color=".25", hue_order=["SUDS", "SUDS + Audio", "SUDS + AU", "SUDS + AU + Audio"],)
+    plt.title(f"Decode SUDS: {DECODE_SUDS}")
     plt.tight_layout()
     plt.savefig(f"/scratch/tm162/rcca_run/figures/{folder_read}_{DECODE_SUDS}.pdf")

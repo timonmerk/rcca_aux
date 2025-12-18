@@ -33,12 +33,13 @@ if DEBUG is False:
     region = args.region
     out_folder_name = args.output_folder + ("_suds" if RUN_SUDS else "_rs") + f"_{region}"
 else:
-    idx_run = 0
-    region = "all"
+    idx_run = 2
+    region = "SC"
     RUN_SUDS = False
-    out_folder_name = "debug_outercv"
+    #out_folder_name = "debug_outercv"
+    out_folder_name = "outccn" + ("_suds" if RUN_SUDS else "_rs") + f"_{region}"
 
-gs_name = "outl_" + ("suds" if RUN_SUDS else "rs") + f"_{region}.csv"
+gs_name = "outccn_" + ("suds" if RUN_SUDS else "rs") + f"_{region}.csv"
 df_gs_res = pd.read_csv("/scratch/tm162/rcca_run/" + gs_name)
 
 if not os.path.exists(f"/scratch/tm162/rcca_run/{out_folder_name}"):
@@ -84,9 +85,10 @@ def run_sub(df_merged, sub, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORM
         cols_include += l_audio_features
     if SUDS:
         if RUN_SUDS:
-            cols_include += ["score_feat"]
+            var_decode = 'score_feat'
         else:
-            cols_include += ['YBOCS II Total Score']
+            var_decode = 'YBOCS II Total Score'
+        cols_include += [var_decode]          
 
     Y_fau = X_sub[cols_include]
     Y_fau["session_id"] = X_sub["session_id"]
@@ -120,6 +122,7 @@ def run_sub(df_merged, sub, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORM
             continue
         X_test = X_test[~idx_nan_test]
         Y_test = Y_test[~idx_nan_test]
+        idx_var_decode = Y_test.columns.get_loc(var_decode)
         
         if NORMALIZE:
             scaler_X = StandardScaler()
@@ -131,36 +134,41 @@ def run_sub(df_merged, sub, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORM
             Y_train = pd.DataFrame(scaler_Y.fit_transform(Y_train), columns=Y_train.columns, index=Y_train.index)
             Y_test = pd.DataFrame(scaler_Y.transform(Y_test), columns=Y_test.columns, index=Y_test.index)
 
-        df_q = df_gs_res.query("subject == @sub and sess_test_id == @test_sess_id and INCLUDE_AU == @INCLUDE_AU and INCLUDE_AUDIO == @INCLUDE_AUDIO and SUDS == @SUDS")
+        df_q = df_gs_res.query("subject == @sub and sess_test_id == @test_sess_id and INCLUDE_AU == @INCLUDE_AU and INCLUDE_AUDIO == @INCLUDE_AUDIO and SUDS == @SUDS").reset_index()
+        df_q = df_q.query("cc_dim == 'all' and reg != 0.1").reset_index()
         try:
             idx_best = df_q["r"].idxmax()
-            # get the index with highest r but num_cc != 25 and reg != 10000
-            if df_q.loc[idx_best, "reg"] == 0.01:
-                df_q_temp = df_q[(df_q["reg"] != 0.01)]
-                idx_best = df_q_temp["r"].idxmax()
         except:
             continue
-        num_cc_best = df_q.loc[idx_best, "num_cc"]
-        reg_best = df_q.loc[idx_best, "reg"]
-
-        cca = rcca.CCA(kernelcca=False, numCC=num_cc_best, reg=reg_best, verbose=False,)
+        cc_dim = df_q.loc[idx_best, "cc_dim"]
+        num_cc_best = int(df_q.loc[idx_best, "num_cc"])
+        
+        reg_best = float(df_q.loc[idx_best, "reg"])
+        try:
+            cca = rcca.CCA(kernelcca=False, numCC=num_cc_best, reg=reg_best+0.001, verbose=True,)
+        except:
+            continue
         cca.train([X_train, Y_train])
 
-        # Compute the correlation between the predicted and true values
         x_weights = cca.ws[0]
         y_weights = cca.ws[1]
 
         U = X_test @ x_weights
-        Y_te_pred = U @ np.linalg.pinv(y_weights)
+        if cc_dim == "all":
+            Y_te_pred = U.values @ np.linalg.pinv(y_weights)
+            Y_te_pred = Y_te_pred[:, idx_var_decode]
+        else:
+            Y_te_pred = U.values[:, int(cc_dim)-1]
+            
 
-        y_true_sub.append(Y_test)
+        y_true_sub.append(Y_test.values)
         y_pred_sub.append(Y_te_pred)
     
     if len(y_true_sub) == 0:
         print(f"No data for sub {sub}, SUDS {SUDS}, INCLUDE_AU {INCLUDE_AU}, INCLUDE_AUDIO {INCLUDE_AUDIO}")
         return pd.DataFrame()
-    y_true_sub = np.vstack(y_true_sub)
-    y_pred_sub = np.vstack(y_pred_sub)
+    y_true_sub = np.concatenate(y_true_sub)
+    y_pred_sub = np.concatenate(y_pred_sub)
 
     #if SHUFFLE:
     #    np.random.shuffle(y_true_sub)
@@ -170,12 +178,12 @@ def run_sub(df_merged, sub, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORM
         #    continue
         #if col != 'YBOCS II Total Score' and not RUN_SUDS:
         #    continue
-        if col == "session_id":
+        if col != var_decode:
             continue
         #r = np.corrcoef(y_true_sub[:, i], y_pred_sub[:, i])[0, 1]
         #print(f"sub {sub}, sess {test_sess_id}, AU {col}, r = {r:.3f}")
         # r, p = stats.spearmanr(y_true_sub[:, i], y_pred_sub[:, i])
-        r, p = stats.pearsonr(y_true_sub[:, i], y_pred_sub[:, i])
+        r, p = stats.pearsonr(y_true_sub[:, i], y_pred_sub)
         df_res.append({"subject": sub, "AU": col, "r": r, "p": p})
 
     df_res = pd.DataFrame(df_res)
@@ -190,6 +198,9 @@ def run_sub(df_merged, sub, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORM
 if __name__ == "__main__":
 
     df_merged, subs = utils.get_df_features(region, "all", READ_RS=not RUN_SUDS)
+    # if nan in subs, remove them
+    subs = [int(sub) for sub in subs if not pd.isna(sub)]
+
     pers_ = []
     SUDS = True
     combination_list = []
@@ -215,13 +226,15 @@ if __name__ == "__main__":
         #_ = run_sub(df_merged, sub=10, num_cc=10, reg=10000, SUDS=True, INCLUDE_AU=False, INCLUDE_AUDIO=False, NORMALIZE=True, KERNEL_CCA=False, SHUFFLE=True, out_folder_name=out_folder_name, RUN_SUDS=RUN_SUDS)
         #_ = run_sub(df_merged, sub=10, num_cc=10, reg=10000, SUDS=True, INCLUDE_AU=True, INCLUDE_AUDIO=True, NORMALIZE=True, KERNEL_CCA=False, SHUFFLE=True, out_folder_name=out_folder_name, RUN_SUDS=RUN_SUDS)
         
-#        for idx_run in tqdm(range(num_combinations)):
+        # for idx_run in tqdm(range(num_combinations)):
         sub, SUDS, INCLUDE_AU, INCLUDE_AUDIO = combination_list[idx_run]["sub"],combination_list[idx_run]["SUDS"], combination_list[idx_run]["INCLUDE_AU"], combination_list[idx_run]["INCLUDE_AUDIO"]
+        #INCLUDE_AU = False
+        #INCLUDE_AUDIO = False
 
         _ = run_sub(df_merged, sub, SUDS=SUDS,
-                                        INCLUDE_AU=INCLUDE_AU, INCLUDE_AUDIO=INCLUDE_AUDIO,
-                                        out_folder_name=out_folder_name, RUN_SUDS=RUN_SUDS,
-                                        )
+                    INCLUDE_AU=INCLUDE_AU, INCLUDE_AUDIO=INCLUDE_AUDIO,
+                    out_folder_name=out_folder_name, RUN_SUDS=RUN_SUDS,
+                    )
         print("done")
     except Exception as e:
         print(f"Error for index {idx_run}, sub {sub}, INCLUDE_AU {INCLUDE_AU}, INCLUDE_AUDIO {INCLUDE_AUDIO}: {e}")
